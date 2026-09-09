@@ -1,1138 +1,439 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Appliance Energy Label Catalog</title>
-  <style>
-    :root {
-      --primary-color: #0b2545;
-      --accent-color: #134074;
-      --bg-color: #f4f6f9;
-      --card-bg: #ffffff;
-      --text-color: #1d2d44;
-      --text-muted: #6c757d;
-      --border-color: #e0e0e0;
-      --success-color: #27ae60;
-      --danger-color: #e74c3c;
-      --warning-color: #f39c12;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      padding-bottom: 80px;
-    }
-
-    /* LOADING SCREEN STYLES */
-    #loadingScreen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #ffffff;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      transition: opacity 0.5s ease, visibility 0.5s ease;
-    }
-
-    #loadingScreen.hidden {
-      opacity: 0;
-      visibility: hidden;
-    }
-
-    .loader-logo {
-      width: 250px;
-      max-width: 80%;
-      height: auto;
-      margin-bottom: 2rem;
-      animation: pulse 1.5s infinite ease-in-out;
-    }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid var(--border-color);
-      border-top: 4px solid #2041bb; /* Astron Blue Accent */
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 0.9; }
-      50% { transform: scale(1.05); opacity: 1; }
-      100% { transform: scale(1); opacity: 0.9; }
-    }
-
-    /* HEADER & HAMBURGER MENU STYLES */
-    header {
-      background-color: var(--primary-color);
-      color: #fff;
-      padding: 1.5rem 1rem;
-      text-align: center;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* HIDE HAMBURGER BUTTON BY DEFAULT FROM VISITORS */
-    .hamburger-btn {
-      display: none; /* Hidden until admin unlocks it */
-      position: absolute;
-      left: 20px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 1.8rem;
-      cursor: pointer;
-      padding: 5px;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .hamburger-btn span {
-      display: block;
-      width: 25px;
-      height: 3px;
-      background-color: #fff;
-      border-radius: 2px;
-    }
-
-    header h1 {
-      font-size: 1.6rem;
-    }
-
-    /* SIDE DRAWER STYLES */
-    .side-drawer {
-      position: fixed;
-      top: 0;
-      left: -300px;
-      width: 280px;
-      height: 100%;
-      background-color: #ffffff;
-      box-shadow: 2px 0 12px rgba(0,0,0,0.15);
-      z-index: 1100;
-      transition: left 0.3s ease;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .side-drawer.open {
-      left: 0;
-    }
-
-    .drawer-header {
-      background-color: var(--primary-color);
-      color: #fff;
-      padding: 1.2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .drawer-header h3 {
-      font-size: 1.1rem;
-    }
-
-    .drawer-close {
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 1.5rem;
-      cursor: pointer;
-    }
-
-    .drawer-body {
-      padding: 1.5rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .drawer-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.5);
-      z-index: 1050;
-    }
-
-    .drawer-overlay.active {
-      display: block;
-    }
-
-    /* CONTROLS & CATALOG GRID STYLES */
-    .controls-container {
-      max-width: 1200px;
-      margin: 1.5rem auto;
-      padding: 0 1rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .search-box {
-      flex: 1;
-      min-width: 250px;
-    }
-
-    .search-box input {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-size: 1rem;
-      outline: none;
-      transition: border 0.2s;
-    }
-
-    .search-box input:focus {
-      border-color: var(--accent-color);
-    }
-
-    .filter-buttons {
-      display: flex;
-      gap: 0.5rem;
-      overflow-x: auto;
-      padding-bottom: 0.25rem;
-    }
-
-    .filter-btn {
-      background-color: #fff;
-      border: 1px solid var(--border-color);
-      padding: 0.6rem 1.2rem;
-      border-radius: 20px;
-      cursor: pointer;
-      font-weight: 500;
-      white-space: nowrap;
-      transition: all 0.2s ease;
-    }
-
-    .filter-btn:hover, .filter-btn.active {
-      background-color: var(--primary-color);
-      color: #fff;
-      border-color: var(--primary-color);
-    }
-
-    .catalog-grid {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 1rem;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .card {
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      transition: transform 0.2s, box-shadow 0.2s;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-    }
-
-    /* CARD SELECTION OVERLAY FOR DELETION MODE */
-    .card-select-overlay {
-      display: none;
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 10;
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 6px;
-      padding: 5px 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
-
-    .selection-mode .card-select-overlay {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .card-checkbox {
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-    }
-
-    .selection-mode .card {
-      border: 2px solid var(--accent-color);
-    }
-
-    .card-img-wrapper {
-      background-color: #fff;
-      padding: 1rem;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border-bottom: 1px solid var(--border-color);
-      height: 320px;
-      cursor: pointer;
-    }
-
-    .card-img-wrapper img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-
-    .card-body {
-      padding: 1.25rem;
-      display: flex;
-      flex-direction: column;
-      flex-grow: 1;
-    }
-
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-    }
-
-    .card-subtitle {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-bottom: 0.75rem;
-    }
-
-    .spec-list {
-      font-size: 0.85rem;
-      margin-bottom: 1rem;
-      line-height: 1.5;
-    }
-
-    .spec-item {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px dashed var(--border-color);
-      padding: 0.25rem 0;
-    }
-
-    .card-actions {
-      margin-top: auto;
-      display: flex;
-      gap: 0.3rem;
-    }
-
-    /* EDIT BUTTON IS HIDDEN FROM REGULAR VISITORS BY DEFAULT */
-    .btn-edit {
-      display: none;
-    }
-
-    /* SHOW EDIT BUTTON ONLY WHEN ADMIN IS LOGGED IN */
-    body.is-admin .btn-edit {
-      display: inline-block;
-    }
-
-    .btn {
-      flex: 1;
-      padding: 0.6rem 0.4rem;
-      text-align: center;
-      text-decoration: none;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: background 0.2s;
-    }
-
-    .btn-primary {
-      background-color: var(--accent-color);
-      color: #fff;
-    }
-
-    .btn-primary:hover {
-      background-color: var(--primary-color);
-    }
-
-    .btn-secondary {
-      background-color: #e9ecef;
-      color: var(--text-color);
-    }
-
-    .btn-secondary:hover {
-      background-color: #dee2e6;
-    }
-
-    .btn-warning {
-      background-color: var(--warning-color);
-      color: #fff;
-    }
-
-    .btn-warning:hover {
-      background-color: #d35400;
-    }
-
-    .btn-success {
-      background-color: var(--success-color);
-      color: #fff;
-    }
-
-    .btn-success:hover {
-      background-color: #219150;
-    }
-
-    .btn-danger {
-      background-color: var(--danger-color);
-      color: #fff;
-    }
-
-    .btn-danger:hover {
-      background-color: #c0392b;
-    }
-
-    /* BOTTOM DELETE TOOLBAR */
-    .delete-toolbar {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: #ffffff;
-      box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
-      padding: 1rem;
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .delete-toolbar.active {
-      display: flex;
-    }
-
-    .toolbar-container {
-      max-width: 1200px;
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    /* MODALS */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.85);
-      z-index: 1200;
-      justify-content: center;
-      align-items: center;
-      padding: 1rem;
-      overflow-y: auto;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal-content-img {
-      max-width: 90%;
-      max-height: 90%;
-      object-fit: contain;
-      border-radius: 8px;
-    }
-
-    .form-modal-container {
-      background: #fff;
-      padding: 2rem;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 550px;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      position: relative;
-    }
-
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: bold;
-      margin-bottom: 0.3rem;
-    }
-
-    .form-group input, .form-group select {
-      width: 100%;
-      padding: 0.6rem;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 0.95rem;
-    }
-
-    .specs-builder {
-      border: 1px solid var(--border-color);
-      padding: 0.8rem;
-      border-radius: 6px;
-      background: #fdfdfd;
-    }
-
-    .spec-row {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .spec-row input {
-      flex: 1;
-    }
-
-    .remove-spec-btn {
-      background: #e74c3c;
-      color: #fff;
-      border: none;
-      padding: 0 0.6rem;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .modal-close {
-      position: absolute;
-      top: 15px;
-      right: 20px;
-      color: #aaa;
-      font-size: 1.8rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .modal-close:hover {
-      color: #000;
-    }
-
-    .image-preview-thumb {
-      max-height: 100px;
-      margin-top: 5px;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      display: block;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- LOADING SCREEN OVERLAY -->
-  <div id="loadingScreen">
-    <img src="New astron logo.png" alt="Astron Logo" class="loader-logo">
-    <div class="spinner"></div>
-  </div>
-
-  <!-- HEADER WITH HAMBURGER BUTTON -->
-  <header>
-    <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleDrawer()" aria-label="Open side menu">
-      <span></span>
-      <span></span>
-      <span></span>
-    </button>
-    <h1>Appliance Energy Label Catalog</h1>
-  </header>
-
-  <!-- SIDE DRAWER MENU -->
-  <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
-  
-  <div class="side-drawer" id="sideDrawer">
-    <div class="drawer-header">
-      <h3>Admin Panel</h3>
-      <button class="drawer-close" onclick="toggleDrawer()">&times;</button>
-    </div>
-    <div class="drawer-body">
-      <button class="btn btn-success" style="padding: 0.8rem; font-size: 0.95rem;" onclick="openUploadFromDrawer()">
-        + Add New Item
-      </button>
-      <button class="btn btn-danger" style="padding: 0.8rem; font-size: 0.95rem;" onclick="enableSelectionModeFromDrawer()">
-        🗑️ Delete Items
-      </button>
-      <button class="btn btn-secondary" style="padding: 0.8rem; font-size: 0.95rem; margin-top: 1rem;" onclick="adminLogout()">
-        🔒 Lock Admin Controls
-      </button>
-    </div>
-  </div>
-
-  <!-- SEARCH & FILTER CONTROLS -->
-  <div class="controls-container">
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Search by brand, model, or specs..." onkeyup="filterCatalog()">
-    </div>
-    <div class="filter-buttons">
-      <button class="filter-btn active" onclick="filterCategory('all', this)">All Categories</button>
-      <button class="filter-btn" onclick="filterCategory('electric-fan', this)">Electric Fans</button>
-      <button class="filter-btn" onclick="filterCategory('led-tv', this)">LED TV</button>
-      <button class="filter-btn" onclick="filterCategory('aircon', this)">Aircon</button>
-      <button class="filter-btn" onclick="filterCategory('refrigerator', this)">Ref</button>
-    </div>
-  </div>
-
-  <main class="catalog-grid" id="catalogGrid">
-    <!-- Dynamic Cards Rendered via JS -->
-  </main>
-
-  <!-- BOTTOM SELECTION/DELETE TOOLBAR -->
-  <div class="delete-toolbar" id="deleteToolbar">
-    <div class="toolbar-container">
-      <div>
-        <span id="selectedCount" style="font-weight: bold;">0 items selected</span>
-      </div>
-      <div style="display: flex; gap: 0.5rem;">
-        <button class="btn btn-secondary" onclick="toggleSelectAll()">Select All</button>
-        <button class="btn btn-danger" onclick="deleteSelectedItems()">Delete Selected</button>
-        <button class="btn btn-secondary" onclick="disableSelectionMode()">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- IMAGE INSPECT MODAL -->
-  <div class="modal" id="imageModal" onclick="closeModal('imageModal')">
-    <span class="modal-close">&times;</span>
-    <img class="modal-content-img" id="modalImg" src="" alt="Preview">
-  </div>
-
-  <!-- CREATE / EDIT ITEM MODAL FORM -->
-  <div class="modal" id="uploadModal">
-    <div class="form-modal-container" onclick="event.stopPropagation()">
-      <span class="modal-close" onclick="closeModal('uploadModal')">&times;</span>
-      <h2 style="margin-bottom: 1rem;" id="modalFormTitle">Add New Energy Label</h2>
-      
-      <form id="uploadForm" onsubmit="handleFormSubmit(event)">
-        <!-- Hidden input to track editing ID -->
-        <input type="hidden" id="editItemId" value="">
-
-        <div class="form-group">
-          <label for="inputCategory">Category</label>
-          <select id="inputCategory" required>
-            <option value="electric-fan|Electric Fan">Electric Fan</option>
-            <option value="led-tv|LED TV">LED TV</option>
-            <option value="aircon|Air Conditioner">Air Conditioner</option>
-            <option value="refrigerator|Refrigerator">Refrigerator</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="inputBrand">Brand Name</label>
-          <input type="text" id="inputBrand" placeholder="e.g. ASTRON" required>
-        </div>
-
-        <div class="form-group">
-          <label for="inputModel">Model Name/Number</label>
-          <input type="text" id="inputModel" placeholder="e.g. ARROW" required>
-        </div>
-
-        <div class="form-group">
-          <label for="inputRating">Energy Rating</label>
-          <input type="text" id="inputRating" placeholder="e.g. 4.50" required>
-        </div>
-
-        <div class="form-group">
-          <label for="inputImage">Label Image File <span id="imageHelpText" style="font-weight: normal; color: #666;"></span></label>
-          <input type="file" id="inputImage" accept="image/*">
-          <img id="currentImagePreview" class="image-preview-thumb" src="" style="display:none;" alt="Current Image Preview">
-        </div>
-
-        <div class="form-group">
-          <label>Specifications (Key / Value)</label>
-          <div class="specs-builder" id="specsContainer">
-            <!-- Rows added dynamically -->
-          </div>
-          <button type="button" class="btn btn-secondary" style="margin-top: 0.5rem; width: 100%;" onclick="addSpecRow()">+ Add Spec Row</button>
-        </div>
-
-        <button type="submit" class="btn btn-success" style="width: 100%; padding: 0.8rem; font-size: 1rem;" id="formSubmitBtn">Save & Display</button>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    /* =========================================================
-       LOADING SCREEN DISMISSAL
-       ========================================================= */
-    window.addEventListener('load', function() {
-      const loader = document.getElementById('loadingScreen');
-      // Adding a slight delay to ensure smooth transition
-      setTimeout(() => {
-        loader.classList.add('hidden');
-      }, 500);
-    });
-
-    /* =========================================================
-       SECRET KEYBOARD SHORTCUT & ADMIN ACCESS CONTROL
-       ========================================================= */
-    const ADMIN_PASSWORD = "admin123"; // CHANGE YOUR PASSWORD HERE
-
-    // Secret Key Shortcut Trigger (Ctrl + Shift + A)
-    document.addEventListener('keydown', function(event) {
-      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'a') {
-        event.preventDefault();
-        
-        if (sessionStorage.getItem("isAdmin") === "true") {
-          alert("Admin controls are already unlocked!");
-          return;
-        }
-
-        const password = prompt("Enter Admin Secret Password:");
-        if (password === ADMIN_PASSWORD) {
-          sessionStorage.setItem("isAdmin", "true");
-          showAdminControls();
-          alert("Admin access granted! Burger menu and Edit controls unlocked.");
-        } else if (password !== null) {
-          alert("Incorrect password!");
-        }
-      }
-    });
-
-    function checkAdminSession() {
-      if (sessionStorage.getItem("isAdmin") === "true") {
-        showAdminControls();
-      }
-    }
-
-    function showAdminControls() {
-      // 1. Show the hamburger menu icon
-      const burgerBtn = document.getElementById("hamburgerBtn");
-      if (burgerBtn) {
-        burgerBtn.style.display = "flex";
-      }
-
-      // 2. Add 'is-admin' class to body to reveal edit buttons on cards
-      document.body.classList.add("is-admin");
-    }
-
-    function adminLogout() {
-      sessionStorage.removeItem("isAdmin");
-      toggleDrawer();
-      disableSelectionMode();
-      
-      // Hide admin elements
-      document.getElementById("hamburgerBtn").style.display = "none";
-      document.body.classList.remove("is-admin");
-
-      alert("Admin controls locked.");
-    }
-
-    /* =========================================================
-       CATALOG & MENU LOGIC
-       ========================================================= */
-    const defaultData = [
-      {
-        "id": "efu-0048-000067",
-        "brand": "ASTRON",
-        "model": "ARROW",
-        "category": "electric-fan",
-        "categoryName": "Electric Fan",
-        "rating": "0.60",
-        "image": "https://via.placeholder.com/300x400.png?text=ASTRON+Label",
-        "specs": {
-          "Monthly Cons.": "9.60 kWh",
-          "Power Input": "40 W",
-          "Flow Rate": "24.00 m³/min",
-          "Type": "Desk Fan"
-        }
-      },
-      {
-        "id": "tv-1002-000120",
-        "brand": "SAMSUNG",
-        "model": "UA43CU7000",
-        "category": "led-tv",
-        "categoryName": "LED TV",
-        "rating": "4.50",
-        "image": "https://via.placeholder.com/300x400.png?text=SAMSUNG+TV+Label",
-        "specs": {
-          "Monthly Cons.": "18.20 kWh",
-          "Screen Size": "43 inches",
-          "Power Input": "75 W",
-          "Display": "4K UHD"
-        }
-      },
-      {
-        "id": "ac-2005-000450",
-        "brand": "CARRIER",
-        "model": "AURA-INVERTER",
-        "category": "aircon",
-        "categoryName": "Air Conditioner",
-        "rating": "5.10",
-        "image": "https://via.placeholder.com/300x400.png?text=CARRIER+AC+Label",
-        "specs": {
-          "CSPF Rating": "5 stars",
-          "Cooling Cap.": "1.0 HP",
-          "Power Input": "780 W",
-          "Monthly Cons.": "112.50 kWh"
-        }
-      },
-      {
-        "id": "ref-3001-000890",
-        "brand": "CONDURA",
-        "model": "PRIMA-5",
-        "category": "refrigerator",
-        "categoryName": "Refrigerator",
-        "rating": "3.80",
-        "image": "https://via.placeholder.com/300x400.png?text=CONDURA+REF+Label",
-        "specs": {
-          "Monthly Cons.": "22.10 kWh",
-          "Storage Vol.": "145 L",
-          "Defrost Type": "Direct Cool",
-          "Power Input": "90 W"
-        }
-      }
-    ];
-
-    let catalogData = [];
-    let currentCategory = 'all';
-    let isSelectionMode = false;
-
-    function initCatalog() {
-      const stored = localStorage.getItem('energyCatalogData');
-      if (stored) {
-        catalogData = JSON.parse(stored);
-      } else {
-        catalogData = defaultData;
-        saveToLocalStorage();
-      }
-      renderCatalog(catalogData);
-      checkAdminSession();
-    }
-
-    function saveToLocalStorage() {
-      localStorage.setItem('energyCatalogData', JSON.stringify(catalogData));
-    }
-
-    function renderCatalog(items) {
-      const grid = document.getElementById('catalogGrid');
-      
-      if(items.length === 0) {
-        grid.innerHTML = `<p style="text-align:center; grid-column: 1/-1; color: var(--text-muted); padding: 2rem;">No catalog items found.</p>`;
-        return;
-      }
-
-      grid.innerHTML = items.map(item => {
-        let specsHtml = `<div class="spec-item"><span>Energy Rating:</span> <strong>${item.rating}</strong></div>`;
-        for (const [key, value] of Object.entries(item.specs)) {
-          specsHtml += `<div class="spec-item"><span>${key}:</span> <strong>${value}</strong></div>`;
-        }
-
-        const searchTerms = `${item.brand} ${item.model} ${item.categoryName} ${item.rating} ${Object.values(item.specs).join(' ')}`;
-
-        return `
-          <div class="card" data-category="${item.category}" data-search="${searchTerms}" data-id="${item.id}">
-            <div class="card-select-overlay">
-              <input type="checkbox" class="card-checkbox" value="${item.id}" onchange="updateSelectedCount()">
-              <label style="font-weight:bold; font-size:0.85rem; cursor:pointer;">Select</label>
-            </div>
-            <div class="card-img-wrapper" onclick="openModal('${item.image}')">
-              <img src="${item.image}" alt="${item.brand} ${item.model} Label" loading="lazy">
-            </div>
-            <div class="card-body">
-              <div class="card-title">${item.brand} - ${item.model}</div>
-              <div class="card-subtitle">${item.categoryName}</div>
-              <div class="spec-list">
-                ${specsHtml}
-              </div>
-              <div class="card-actions">
-                <button class="btn btn-primary" onclick="openModal('${item.image}')">Inspect</button>
-                <button class="btn btn-warning btn-edit" onclick="openEditModal('${item.id}')">Edit</button>
-                <a href="${item.image}" download="${item.brand}_${item.model}_label.jpg" class="btn btn-secondary">Download</a>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-      
-      filterCatalog();
-    }
-
-    /* DRAWER & SELECTION MODE CONTROLS */
-    function toggleDrawer() {
-      const drawer = document.getElementById('sideDrawer');
-      const overlay = document.getElementById('drawerOverlay');
-      drawer.classList.toggle('open');
-      overlay.classList.toggle('active');
-    }
-
-    function openUploadFromDrawer() {
-      toggleDrawer();
-      openUploadModal();
-    }
-
-    function enableSelectionModeFromDrawer() {
-      toggleDrawer();
-      isSelectionMode = true;
-      document.body.classList.add('selection-mode');
-      document.getElementById('deleteToolbar').classList.add('active');
-      updateSelectedCount();
-    }
-
-    function disableSelectionMode() {
-      isSelectionMode = false;
-      document.body.classList.remove('selection-mode');
-      document.getElementById('deleteToolbar').classList.remove('active');
-      document.querySelectorAll('.card-checkbox').forEach(cb => cb.checked = false);
-    }
-
-    function updateSelectedCount() {
-      const checkedBoxes = document.querySelectorAll('.card-checkbox:checked');
-      document.getElementById('selectedCount').innerText = `${checkedBoxes.length} item(s) selected`;
-    }
-
-    function toggleSelectAll() {
-      const visibleCheckboxes = document.querySelectorAll('.card[style*="display: flex"] .card-checkbox, .card:not([style*="display: none"]) .card-checkbox');
-      const allChecked = Array.from(visibleCheckboxes).every(cb => cb.checked);
-
-      visibleCheckboxes.forEach(cb => cb.checked = !allChecked);
-      updateSelectedCount();
-    }
-
-    function deleteSelectedItems() {
-      const checkedBoxes = document.querySelectorAll('.card-checkbox:checked');
-      if (checkedBoxes.length === 0) {
-        alert('Please select at least one item to delete.');
-        return;
-      }
-
-      if (confirm(`Are you sure you want to delete ${checkedBoxes.length} selected item(s)?`)) {
-        const idsToDelete = Array.from(checkedBoxes).map(cb => cb.value);
-        catalogData = catalogData.filter(item => !idsToDelete.includes(item.id));
-        
-        saveToLocalStorage();
-        disableSelectionMode();
-        renderCatalog(catalogData);
-      }
-    }
-
-    /* CATEGORY & SEARCH FILTERS */
-    function filterCategory(category, btn) {
-      currentCategory = category;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      filterCatalog();
-    }
-
-    function filterCatalog() {
-      const searchValue = document.getElementById('searchInput').value.toLowerCase();
-      const cards = document.querySelectorAll('.card');
-
-      cards.forEach(card => {
-        const categoryMatch = (currentCategory === 'all') || (card.getAttribute('data-category') === currentCategory);
-        const searchMatch = card.getAttribute('data-search').toLowerCase().includes(searchValue);
-
-        if (categoryMatch && searchMatch) {
-          card.style.display = 'flex';
-        } else {
-          card.style.display = 'none';
-        }
-      });
-    }
-
-    /* MODAL CONTROL FUNCTIONS */
-    function openModal(imgSrc) {
-      if (isSelectionMode) return;
-      const modal = document.getElementById('imageModal');
-      const modalImg = document.getElementById('modalImg');
-      modalImg.src = imgSrc;
-      modal.classList.add('active');
-    }
-
-    // Open Modal for Creating New Item
-    function openUploadModal() {
-      document.getElementById('editItemId').value = "";
-      document.getElementById('modalFormTitle').innerText = "Add New Energy Label";
-      document.getElementById('formSubmitBtn').innerText = "Save & Display";
-      document.getElementById('inputImage').required = true;
-      document.getElementById('imageHelpText').innerText = "";
-      
-      const prevImg = document.getElementById('currentImagePreview');
-      prevImg.style.display = "none";
-      prevImg.src = "";
-
-      document.getElementById('uploadForm').reset();
-      
-      // Reset specs
-      const specsContainer = document.getElementById('specsContainer');
-      specsContainer.innerHTML = '';
-      addSpecRow();
-
-      document.getElementById('uploadModal').classList.add('active');
-    }
-
-    // Open Modal for Editing Existing Item (ADMIN ONLY)
-    function openEditModal(id) {
-      // Guard check: ensure only admins can edit
-      if (sessionStorage.getItem("isAdmin") !== "true") {
-        alert("Unauthorized access.");
-        return;
-      }
-
-      const item = catalogData.find(i => i.id === id);
-      if (!item) return;
-
-      document.getElementById('editItemId').value = item.id;
-      document.getElementById('modalFormTitle').innerText = "Edit Energy Label";
-      document.getElementById('formSubmitBtn').innerText = "Update Item";
-      
-      document.getElementById('inputImage').required = false;
-      document.getElementById('imageHelpText').innerText = "(Leave empty to keep current image)";
-
-      const prevImg = document.getElementById('currentImagePreview');
-      prevImg.src = item.image;
-      prevImg.style.display = "block";
-
-      document.getElementById('inputCategory').value = `${item.category}|${item.categoryName}`;
-      document.getElementById('inputBrand').value = item.brand;
-      document.getElementById('inputModel').value = item.model;
-      document.getElementById('inputRating').value = item.rating;
-
-      const specsContainer = document.getElementById('specsContainer');
-      specsContainer.innerHTML = '';
-
-      const keys = Object.keys(item.specs);
-      if (keys.length === 0) {
-        addSpecRow();
-      } else {
-        keys.forEach(k => {
-          addSpecRow(k, item.specs[k]);
-        });
-      }
-
-      document.getElementById('uploadModal').classList.add('active');
-    }
-
-    function closeModal(modalId) {
-      document.getElementById(modalId).classList.remove('active');
-    }
-
-    /* DYNAMIC SPEC ROWS */
-    function addSpecRow(key = '', value = '') {
-      const container = document.getElementById('specsContainer');
-      const row = document.createElement('div');
-      row.className = 'spec-row';
-      row.innerHTML = `
-        <input type="text" placeholder="Spec Name" class="spec-key" value="${key}" required>
-        <input type="text" placeholder="Value" class="spec-value" value="${value}" required>
-        <button type="button" class="remove-spec-btn" onclick="removeSpecRow(this)">✕</button>
-      `;
-      container.appendChild(row);
-    }
-
-    function removeSpecRow(btn) {
-      const container = document.getElementById('specsContainer');
-      if (container.children.length > 1) {
-        btn.parentElement.remove();
-      }
-    }
-
-    /* FORM SUBMISSION HANDLING (CREATE & EDIT) */
-    function handleFormSubmit(event) {
+<script>
+  /* =========================================================
+     LOADING SCREEN DISMISSAL
+     ========================================================= */
+  window.addEventListener('load', function() {
+    const loader = document.getElementById('loadingScreen');
+    setTimeout(() => {
+      loader.classList.add('hidden');
+    }, 500);
+  });
+
+  /* =========================================================
+     SECRET KEYBOARD SHORTCUT & ADMIN ACCESS CONTROL
+     ========================================================= */
+  const ADMIN_PASSWORD = "admin123"; // CHANGE YOUR PASSWORD HERE
+
+  document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'a') {
       event.preventDefault();
+      
+      if (sessionStorage.getItem("isAdmin") === "true") {
+        alert("Admin controls are already unlocked!");
+        return;
+      }
 
-      const editId = document.getElementById('editItemId').value;
-      const [category, categoryName] = document.getElementById('inputCategory').value.split('|');
-      const brand = document.getElementById('inputBrand').value;
-      const model = document.getElementById('inputModel').value;
-      const rating = document.getElementById('inputRating').value;
-      const imageFile = document.getElementById('inputImage').files[0];
+      const password = prompt("Enter Admin Secret Password:");
+      if (password === ADMIN_PASSWORD) {
+        sessionStorage.setItem("isAdmin", "true");
+        showAdminControls();
+        alert("Admin access granted! Burger menu and Edit controls unlocked.");
+      } else if (password !== null) {
+        alert("Incorrect password!");
+      }
+    }
+  });
 
-      const specKeys = document.querySelectorAll('.spec-key');
-      const specValues = document.querySelectorAll('.spec-value');
-      const specs = {};
+  function checkAdminSession() {
+    if (sessionStorage.getItem("isAdmin") === "true") {
+      showAdminControls();
+    }
+  }
 
-      specKeys.forEach((keyInput, index) => {
-        const k = keyInput.value.trim();
-        const v = specValues[index].value.trim();
-        if (k && v) {
-          specs[k] = v;
-        }
+  function showAdminControls() {
+    const burgerBtn = document.getElementById("hamburgerBtn");
+    if (burgerBtn) {
+      burgerBtn.style.display = "flex";
+    }
+    document.body.classList.add("is-admin");
+  }
+
+  function adminLogout() {
+    sessionStorage.removeItem("isAdmin");
+    toggleDrawer();
+    disableSelectionMode();
+    
+    document.getElementById("hamburgerBtn").style.display = "none";
+    document.body.classList.remove("is-admin");
+
+    alert("Admin controls locked.");
+  }
+
+  /* =========================================================
+     CATALOG & MENU LOGIC
+     ========================================================= */
+  const defaultData = [
+    {
+      "id": "efu-0048-000067",
+      "brand": "ASTRON",
+      "model": "ARROW",
+      "category": "electric-fan",
+      "categoryName": "Electric Fan",
+      "rating": "0.60",
+      "image": "https://via.placeholder.com/300x400.png?text=ASTRON+Label",
+      "specs": {
+        "Monthly Cons.": "9.60 kWh",
+        "Power Input": "40 W",
+        "Flow Rate": "24.00 m³/min",
+        "Type": "Desk Fan"
+      }
+    },
+    {
+      "id": "tv-1002-000120",
+      "brand": "SAMSUNG",
+      "model": "UA43CU7000",
+      "category": "led-tv",
+      "categoryName": "LED TV",
+      "rating": "4.50",
+      "image": "https://via.placeholder.com/300x400.png?text=SAMSUNG+TV+Label",
+      "specs": {
+        "Monthly Cons.": "18.20 kWh",
+        "Screen Size": "43 inches",
+        "Power Input": "75 W",
+        "Display": "4K UHD"
+      }
+    },
+    {
+      "id": "ac-2005-000450",
+      "brand": "CARRIER",
+      "model": "AURA-INVERTER",
+      "category": "aircon",
+      "categoryName": "Air Conditioner",
+      "rating": "5.10",
+      "image": "https://via.placeholder.com/300x400.png?text=CARRIER+AC+Label",
+      "specs": {
+        "CSPF Rating": "5 stars",
+        "Cooling Cap.": "1.0 HP",
+        "Power Input": "780 W",
+        "Monthly Cons.": "112.50 kWh"
+      }
+    },
+    {
+      "id": "ref-3001-000890",
+      "brand": "CONDURA",
+      "model": "PRIMA-5",
+      "category": "refrigerator",
+      "categoryName": "Refrigerator",
+      "rating": "3.80",
+      "image": "https://via.placeholder.com/300x400.png?text=CONDURA+REF+Label",
+      "specs": {
+        "Monthly Cons.": "22.10 kWh",
+        "Storage Vol.": "145 L",
+        "Defrost Type": "Direct Cool",
+        "Power Input": "90 W"
+      }
+    }
+  ];
+
+  let catalogData = [];
+  let currentCategory = 'all';
+  let isSelectionMode = false;
+
+  function initCatalog() {
+    const stored = localStorage.getItem('energyCatalogData');
+    if (stored) {
+      catalogData = JSON.parse(stored);
+    } else {
+      catalogData = defaultData;
+      saveToLocalStorage();
+    }
+    renderCatalog(catalogData);
+    checkAdminSession();
+  }
+
+  function saveToLocalStorage() {
+    localStorage.setItem('energyCatalogData', JSON.stringify(catalogData));
+  }
+
+  function renderCatalog(items) {
+    const grid = document.getElementById('catalogGrid');
+    
+    if (items.length === 0) {
+      grid.innerHTML = `<p style="text-align:center; grid-column: 1/-1; color: var(--text-muted); padding: 2rem;">No catalog items found.</p>`;
+      return;
+    }
+
+    grid.innerHTML = items.map(item => {
+      let specsHtml = `<div class="spec-item"><span>Energy Rating:</span> <strong>${item.rating}</strong></div>`;
+      for (const [key, value] of Object.entries(item.specs)) {
+        specsHtml += `<div class="spec-item"><span>${key}:</span> <strong>${value}</strong></div>`;
+      }
+
+      const searchTerms = `${item.brand} ${item.model} ${item.categoryName} ${item.rating} ${Object.values(item.specs).join(' ')}`;
+
+      return `
+        <div class="card" data-category="${item.category}" data-search="${searchTerms}" data-id="${item.id}">
+          <div class="card-select-overlay">
+            <input type="checkbox" class="card-checkbox" value="${item.id}" onchange="updateSelectedCount()">
+            <label style="font-weight:bold; font-size:0.85rem; cursor:pointer;">Select</label>
+          </div>
+          <div class="card-img-wrapper" onclick="openModal('${item.image}')">
+            <img src="${item.image}" alt="${item.brand} ${item.model} Label" loading="lazy">
+          </div>
+          <div class="card-body">
+            <div class="card-title">${item.brand} - ${item.model}</div>
+            <div class="card-subtitle">${item.categoryName}</div>
+            <div class="spec-list">
+              ${specsHtml}
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-primary" onclick="openModal('${item.image}')">Inspect</button>
+              <button class="btn btn-warning btn-edit" onclick="openEditModal('${item.id}')">Edit</button>
+              <a href="${item.image}" download="${item.brand}_${item.model}_label.jpg" class="btn btn-secondary">Download</a>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    filterCatalog();
+  }
+
+  /* DRAWER & SELECTION MODE CONTROLS */
+  function toggleDrawer() {
+    const drawer = document.getElementById('sideDrawer');
+    const overlay = document.getElementById('drawerOverlay');
+    drawer.classList.toggle('open');
+    overlay.classList.toggle('active');
+  }
+
+  function openUploadFromDrawer() {
+    toggleDrawer();
+    openUploadModal();
+  }
+
+  function enableSelectionModeFromDrawer() {
+    toggleDrawer();
+    isSelectionMode = true;
+    document.body.classList.add('selection-mode');
+    document.getElementById('deleteToolbar').classList.add('active');
+    updateSelectedCount();
+  }
+
+  function disableSelectionMode() {
+    isSelectionMode = false;
+    document.body.classList.remove('selection-mode');
+    document.getElementById('deleteToolbar').classList.remove('active');
+    document.querySelectorAll('.card-checkbox').forEach(cb => cb.checked = false);
+  }
+
+  function updateSelectedCount() {
+    const checkedBoxes = document.querySelectorAll('.card-checkbox:checked');
+    document.getElementById('selectedCount').innerText = `${checkedBoxes.length} item(s) selected`;
+  }
+
+  function toggleSelectAll() {
+    const visibleCheckboxes = document.querySelectorAll('.card[style*="display: flex"] .card-checkbox, .card:not([style*="display: none"]) .card-checkbox');
+    const allChecked = Array.from(visibleCheckboxes).every(cb => cb.checked);
+
+    visibleCheckboxes.forEach(cb => cb.checked = !allChecked);
+    updateSelectedCount();
+  }
+
+  function deleteSelectedItems() {
+    const checkedBoxes = document.querySelectorAll('.card-checkbox:checked');
+    if (checkedBoxes.length === 0) {
+      alert('Please select at least one item to delete.');
+      return;
+    }
+
+    if (confirm(`Are you sure you want to delete ${checkedBoxes.length} selected item(s)?`)) {
+      const idsToDelete = Array.from(checkedBoxes).map(cb => cb.value);
+      catalogData = catalogData.filter(item => !idsToDelete.includes(item.id));
+      
+      saveToLocalStorage();
+      disableSelectionMode();
+      renderCatalog(catalogData);
+    }
+  }
+
+  /* CATEGORY & SEARCH FILTERS */
+  function filterCategory(category, btn) {
+    currentCategory = category;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filterCatalog();
+  }
+
+  function filterCatalog() {
+    const searchValue = document.getElementById('searchInput').value.toLowerCase();
+    const cards = document.querySelectorAll('.card');
+
+    cards.forEach(card => {
+      const categoryMatch = (currentCategory === 'all') || (card.getAttribute('data-category') === currentCategory);
+      const searchMatch = card.getAttribute('data-search').toLowerCase().includes(searchValue);
+
+      if (categoryMatch && searchMatch) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  /* MODAL CONTROL FUNCTIONS */
+  function openModal(imgSrc) {
+    if (isSelectionMode) return;
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImg');
+    modalImg.src = imgSrc;
+    modal.classList.add('active');
+  }
+
+  function openUploadModal() {
+    document.getElementById('editItemId').value = "";
+    document.getElementById('modalFormTitle').innerText = "Add New Energy Label";
+    document.getElementById('formSubmitBtn').innerText = "Save & Display";
+    document.getElementById('inputImage').required = true;
+    document.getElementById('imageHelpText').innerText = "";
+    
+    const prevImg = document.getElementById('currentImagePreview');
+    prevImg.style.display = "none";
+    prevImg.src = "";
+
+    document.getElementById('uploadForm').reset();
+    
+    const specsContainer = document.getElementById('specsContainer');
+    specsContainer.innerHTML = '';
+    addSpecRow();
+
+    document.getElementById('uploadModal').classList.add('active');
+  }
+
+  function openEditModal(id) {
+    if (sessionStorage.getItem("isAdmin") !== "true") {
+      alert("Unauthorized access.");
+      return;
+    }
+
+    const item = catalogData.find(i => i.id === id);
+    if (!item) return;
+
+    document.getElementById('editItemId').value = item.id;
+    document.getElementById('modalFormTitle').innerText = "Edit Energy Label";
+    document.getElementById('formSubmitBtn').innerText = "Update Item";
+    
+    document.getElementById('inputImage').required = false;
+    document.getElementById('imageHelpText').innerText = "(Leave empty to keep current image)";
+
+    const prevImg = document.getElementById('currentImagePreview');
+    prevImg.src = item.image;
+    prevImg.style.display = "block";
+
+    document.getElementById('inputCategory').value = `${item.category}|${item.categoryName}`;
+    document.getElementById('inputBrand').value = item.brand;
+    document.getElementById('inputModel').value = item.model;
+    document.getElementById('inputRating').value = item.rating;
+
+    const specsContainer = document.getElementById('specsContainer');
+    specsContainer.innerHTML = '';
+
+    const keys = Object.keys(item.specs);
+    if (keys.length === 0) {
+      addSpecRow();
+    } else {
+      keys.forEach(k => {
+        addSpecRow(k, item.specs[k]);
       });
+    }
 
-      const saveItemData = (imageData) => {
-        if (editId) {
-          // EDITING
-          const index = catalogData.findIndex(i => i.id === editId);
-          if (index !== -1) {
-            catalogData[index] = {
-              id: editId,
-              brand: brand.toUpperCase(),
-              model: model.toUpperCase(),
-              category: category,
-              categoryName: categoryName,
-              rating: rating,
-              image: imageData || catalogData[index].image,
-              specs: specs
-            };
-          }
-        } else {
-          // CREATING
-          const newItem = {
-            id: `custom-${Date.now()}`,
+    document.getElementById('uploadModal').classList.add('active');
+  }
+
+  function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+  }
+
+  /* DYNAMIC SPEC ROWS */
+  function addSpecRow(key = '', value = '') {
+    const container = document.getElementById('specsContainer');
+    const row = document.createElement('div');
+    row.className = 'spec-row';
+    row.innerHTML = `
+      <input type="text" placeholder="Spec Name" class="spec-key" value="${key}" required>
+      <input type="text" placeholder="Value" class="spec-value" value="${value}" required>
+      <button type="button" class="remove-spec-btn" onclick="removeSpecRow(this)">✕</button>
+    `;
+    container.appendChild(row);
+  }
+
+  function removeSpecRow(btn) {
+    const container = document.getElementById('specsContainer');
+    if (container.children.length > 1) {
+      btn.parentElement.remove();
+    }
+  }
+
+  /* FORM SUBMISSION HANDLING (CREATE & EDIT) */
+  function handleFormSubmit(event) {
+    event.preventDefault();
+
+    const editId = document.getElementById('editItemId').value;
+    const [category, categoryName] = document.getElementById('inputCategory').value.split('|');
+    const brand = document.getElementById('inputBrand').value;
+    const model = document.getElementById('inputModel').value;
+    const rating = document.getElementById('inputRating').value;
+    const imageFile = document.getElementById('inputImage').files[0];
+
+    const specKeys = document.querySelectorAll('.spec-key');
+    const specValues = document.querySelectorAll('.spec-value');
+    const specs = {};
+
+    specKeys.forEach((keyInput, index) => {
+      const k = keyInput.value.trim();
+      const v = specValues[index].value.trim();
+      if (k && v) {
+        specs[k] = v;
+      }
+    });
+
+    const commitSave = (imageData) => {
+      if (editId) {
+        // Edit existing item
+        const index = catalogData.findIndex(i => i.id === editId);
+        if (index !== -1) {
+          catalogData[index] = {
+            id: editId,
             brand: brand.toUpperCase(),
             model: model.toUpperCase(),
             category: category,
             categoryName: categoryName,
             rating: rating,
-            image: imageData,
+            image: imageData || catalogData[index].image,
             specs: specs
           };
-          catalogData.unshift(newItem);
         }
-
-        saveToLocalStorage();
-        renderCatalog(catalogData);
-        document.getElementById('uploadForm').reset();
-        closeModal('uploadModal');
-      };
-
-      if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          saveItemData(e.target.result);
-        };
-        reader.readAsDataURL(imageFile);
       } else {
-        saveItemData(null);
+        // Add new item
+        const newItem = {
+          id: `item-${Date.now()}`,
+          brand: brand.toUpperCase(),
+          model: model.toUpperCase(),
+          category: category,
+          categoryName: categoryName,
+          rating: rating,
+          image: imageData || "https://via.placeholder.com/300x400.png?text=No+Image",
+          specs: specs
+        };
+        catalogData.unshift(newItem);
       }
-    }
 
-    // Initialize on page load
-    initCatalog();
-  </script>
-</body>
-</html>
+      saveToLocalStorage();
+      renderCatalog(catalogData);
+      closeModal('uploadModal');
+    };
+
+    if (imageFile) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        commitSave(e.target.result);
+      };
+      reader.readAsDataURL(imageFile);
+    } else {
+      commitSave(null);
+    }
+  }
+
+  // Initialize catalog on DOM ready
+  document.addEventListener('DOMContentLoaded', initCatalog);
+</script>
