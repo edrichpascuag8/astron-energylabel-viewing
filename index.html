@@ -93,6 +93,7 @@
       justify-content: center;
     }
 
+    /* HIDE HAMBURGER BUTTON BY DEFAULT FROM VISITORS */
     .hamburger-btn {
       display: none; /* Hidden until admin unlocks it */
       position: absolute;
@@ -348,7 +349,7 @@
       gap: 0.3rem;
     }
 
-    /* EDIT BUTTON HIDDEN FROM REGULAR VISITORS BY DEFAULT */
+    /* EDIT BUTTON IS HIDDEN FROM REGULAR VISITORS BY DEFAULT */
     .btn-edit {
       display: none;
     }
@@ -685,21 +686,14 @@
 
   <script>
     /* =========================================================
-       CLOUD DATABASE CONFIGURATION (JSONBin.io Integration)
-       Replace these values if you use your own JSONBin account
-       ========================================================= */
-    const JSONBIN_URL = "https://api.jsonbin.io/v3/b/663d27471522f306ee1b1c2b"; // Free Public Endpoint
-    const API_KEY = "$2a$10$UnL/mN/k/mWRJ17zS54v2O0SgUmszZkIn0qA7HInH7EdeLp9RjQ1m";
-
-    /* =========================================================
        LOADING SCREEN DISMISSAL
        ========================================================= */
     window.addEventListener('load', function() {
       const loader = document.getElementById('loadingScreen');
+      // Adding a slight delay to ensure smooth transition
       setTimeout(() => {
         loader.classList.add('hidden');
       }, 500);
-      initCatalog();
     });
 
     /* =========================================================
@@ -707,6 +701,7 @@
        ========================================================= */
     const ADMIN_PASSWORD = "admin123"; // CHANGE YOUR PASSWORD HERE
 
+    // Secret Key Shortcut Trigger (Ctrl + Shift + A)
     document.addEventListener('keydown', function(event) {
       if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'a') {
         event.preventDefault();
@@ -734,10 +729,13 @@
     }
 
     function showAdminControls() {
+      // 1. Show the hamburger menu icon
       const burgerBtn = document.getElementById("hamburgerBtn");
       if (burgerBtn) {
         burgerBtn.style.display = "flex";
       }
+
+      // 2. Add 'is-admin' class to body to reveal edit buttons on cards
       document.body.classList.add("is-admin");
     }
 
@@ -745,13 +743,16 @@
       sessionStorage.removeItem("isAdmin");
       toggleDrawer();
       disableSelectionMode();
+      
+      // Hide admin elements
       document.getElementById("hamburgerBtn").style.display = "none";
       document.body.classList.remove("is-admin");
+
       alert("Admin controls locked.");
     }
 
     /* =========================================================
-       CATALOG & CLOUD API LOGIC
+       CATALOG & MENU LOGIC
        ========================================================= */
     const defaultData = [
       {
@@ -783,6 +784,36 @@
           "Power Input": "75 W",
           "Display": "4K UHD"
         }
+      },
+      {
+        "id": "ac-2005-000450",
+        "brand": "CARRIER",
+        "model": "AURA-INVERTER",
+        "category": "aircon",
+        "categoryName": "Air Conditioner",
+        "rating": "5.10",
+        "image": "https://via.placeholder.com/300x400.png?text=CARRIER+AC+Label",
+        "specs": {
+          "CSPF Rating": "5 stars",
+          "Cooling Cap.": "1.0 HP",
+          "Power Input": "780 W",
+          "Monthly Cons.": "112.50 kWh"
+        }
+      },
+      {
+        "id": "ref-3001-000890",
+        "brand": "CONDURA",
+        "model": "PRIMA-5",
+        "category": "refrigerator",
+        "categoryName": "Refrigerator",
+        "rating": "3.80",
+        "image": "https://via.placeholder.com/300x400.png?text=CONDURA+REF+Label",
+        "specs": {
+          "Monthly Cons.": "22.10 kWh",
+          "Storage Vol.": "145 L",
+          "Defrost Type": "Direct Cool",
+          "Power Input": "90 W"
+        }
       }
     ];
 
@@ -790,40 +821,20 @@
     let currentCategory = 'all';
     let isSelectionMode = false;
 
-    // Fetch catalogue data from Cloud Database
-    async function initCatalog() {
-      try {
-        const res = await fetch(JSONBIN_URL + "/latest", {
-          headers: { "X-Master-Key": API_KEY }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          catalogData = data.record || defaultData;
-        } else {
-          catalogData = defaultData;
-        }
-      } catch (err) {
-        console.warn("Could not load from cloud, using default data.", err);
+    function initCatalog() {
+      const stored = localStorage.getItem('energyCatalogData');
+      if (stored) {
+        catalogData = JSON.parse(stored);
+      } else {
         catalogData = defaultData;
+        saveToLocalStorage();
       }
       renderCatalog(catalogData);
       checkAdminSession();
     }
 
-    // Save catalogue changes to Cloud Database globally
-    async function saveToCloud() {
-      try {
-        await fetch(JSONBIN_URL, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Master-Key": API_KEY
-          },
-          body: JSON.stringify(catalogData)
-        });
-      } catch (err) {
-        alert("Failed to sync changes to the cloud database. Please check your connection.");
-      }
+    function saveToLocalStorage() {
+      localStorage.setItem('energyCatalogData', JSON.stringify(catalogData));
     }
 
     function renderCatalog(items) {
@@ -911,7 +922,7 @@
       updateSelectedCount();
     }
 
-    async function deleteSelectedItems() {
+    function deleteSelectedItems() {
       const checkedBoxes = document.querySelectorAll('.card-checkbox:checked');
       if (checkedBoxes.length === 0) {
         alert('Please select at least one item to delete.');
@@ -922,7 +933,7 @@
         const idsToDelete = Array.from(checkedBoxes).map(cb => cb.value);
         catalogData = catalogData.filter(item => !idsToDelete.includes(item.id));
         
-        await saveToCloud();
+        saveToLocalStorage();
         disableSelectionMode();
         renderCatalog(catalogData);
       }
@@ -961,6 +972,7 @@
       modal.classList.add('active');
     }
 
+    // Open Modal for Creating New Item
     function openUploadModal() {
       document.getElementById('editItemId').value = "";
       document.getElementById('modalFormTitle').innerText = "Add New Energy Label";
@@ -974,6 +986,7 @@
 
       document.getElementById('uploadForm').reset();
       
+      // Reset specs
       const specsContainer = document.getElementById('specsContainer');
       specsContainer.innerHTML = '';
       addSpecRow();
@@ -981,7 +994,9 @@
       document.getElementById('uploadModal').classList.add('active');
     }
 
+    // Open Modal for Editing Existing Item (ADMIN ONLY)
     function openEditModal(id) {
+      // Guard check: ensure only admins can edit
       if (sessionStorage.getItem("isAdmin") !== "true") {
         alert("Unauthorized access.");
         return;
@@ -1046,7 +1061,7 @@
     }
 
     /* FORM SUBMISSION HANDLING (CREATE & EDIT) */
-    async function handleFormSubmit(event) {
+    function handleFormSubmit(event) {
       event.preventDefault();
 
       const editId = document.getElementById('editItemId').value;
@@ -1068,8 +1083,9 @@
         }
       });
 
-      const processData = async (imageData) => {
+      const saveItemData = (imageData) => {
         if (editId) {
+          // EDITING
           const index = catalogData.findIndex(i => i.id === editId);
           if (index !== -1) {
             catalogData[index] = {
@@ -1084,34 +1100,39 @@
             };
           }
         } else {
-          const newId = 'item-' + Date.now();
-          catalogData.unshift({
-            id: newId,
+          // CREATING
+          const newItem = {
+            id: `custom-${Date.now()}`,
             brand: brand.toUpperCase(),
             model: model.toUpperCase(),
             category: category,
             categoryName: categoryName,
             rating: rating,
-            image: imageData || "https://via.placeholder.com/300x400.png?text=Label+Image",
+            image: imageData,
             specs: specs
-          });
+          };
+          catalogData.unshift(newItem);
         }
 
-        await saveToCloud();
+        saveToLocalStorage();
         renderCatalog(catalogData);
+        document.getElementById('uploadForm').reset();
         closeModal('uploadModal');
       };
 
       if (imageFile) {
         const reader = new FileReader();
-        reader.onload = function(e) {
-          processData(e.target.result);
+        reader.onload = function (e) {
+          saveItemData(e.target.result);
         };
         reader.readAsDataURL(imageFile);
       } else {
-        processData(null);
+        saveItemData(null);
       }
     }
+
+    // Initialize on page load
+    initCatalog();
   </script>
 </body>
 </html>
