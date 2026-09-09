@@ -1,0 +1,62 @@
+[
+  {
+    "id": "efu-0048-000067",
+    "brand": "ASTRON",
+    "model": "ARROW",
+    "category": "electric-fan",
+    "categoryName": "Electric Fan",
+    "rating": "0.60",
+    "image": "images/ARROW NEW FORMAT.jpg",
+    "specs": {
+      "Monthly Cons.": "9.60 kWh",
+      "Power Input": "40 W",
+      "Flow Rate": "24.00 m³/min",
+      "Type": "Desk Fan"
+    }
+  },
+  {
+    "id": "tv-1002-000120",
+    "brand": "SAMSUNG",
+    "model": "UA43CU7000",
+    "category": "led-tv",
+    "categoryName": "LED TV",
+    "rating": "4.50",
+    "image": "images/SAMSUNG_TV.jpg",
+    "specs": {
+      "Monthly Cons.": "18.20 kWh",
+      "Screen Size": "43 inches",
+      "Power Input": "75 W",
+      "Display": "4K UHD"
+    }
+  },
+  {
+    "id": "ac-2005-000450",
+    "brand": "CARRIER",
+    "model": "AURA-INVERTER",
+    "category": "aircon",
+    "categoryName": "Air Conditioner",
+    "rating": "5.10",
+    "image": "images/CARRIER_AC.jpg",
+    "specs": {
+      "CSPF Rating": "5 stars",
+      "Cooling Cap.": "1.0 HP",
+      "Power Input": "780 W",
+      "Monthly Cons.": "112.50 kWh"
+    }
+  },
+  {
+    "id": "ref-3001-000890",
+    "brand": "CONDURA",
+    "model": "PRIMA-5",
+    "category": "refrigerator",
+    "categoryName": "Refrigerator",
+    "rating": "3.80",
+    "image": "images/CONDURA_REF.jpg",
+    "specs": {
+      "Monthly Cons.": "22.10 kWh",
+      "Storage Vol.": "145 L",
+      "Defrost Type": "Direct Cool",
+      "Power Input": "90 W"
+    }
+  }
+]
